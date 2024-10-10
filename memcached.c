@@ -108,11 +108,12 @@ static void conn_free(conn *c);
 uint64_t get_physical_address(uint64_t virtual_address, pid_t pid);
 
 /** exported globals **/
-struct stats stats __attribute__((section("./my_monitor")));
-// struct stats stats __attribute__((section(".my_monitor"), aligned(4096)));
+uint64_t variable __attribute__((section("./my_monitor"), aligned(4096)));
+// uint64_t variable2 __attribute__((section("./my_monitor"), aligned(4096)));
+struct stats stats __attribute__((section(".my_monitor")));
 struct stats_state stats_state __attribute__((section(".my_monitor")));
 struct settings settings __attribute__((section(".my_monitor")));
-LIBEVENT_THREAD raw_threads[10];
+LIBEVENT_THREAD raw_threads[32];
 char dummy[4096] __attribute__((section(".my_monitor")));
 
 // struct stats stats;
@@ -258,9 +259,10 @@ static void stats_init(void) {
   process_started = time(0) - ITEM_UPDATE_INTERVAL - 2;
   stats_prefix_init(settings.prefix_delimiter);
 
-  const void *p = &stats;
+  const void *p = &variable;
+  variable = 0xdeadbeefbeefcafe;
+  // variable2 = 0xdeadbeefbeefcafe;
 
-  printf("&stats is 0x%lx.\n", (unsigned long)&stats_state);
   if (mlock(p, PAGE_SIZE) < 0) {
     perror("mlock failed");
   }
@@ -268,16 +270,19 @@ static void stats_init(void) {
   pid_t pid = getpid();
   uint64_t virtual_address = (uint64_t)p;
 
-  printf("Virtual address of stats: 0x%lx\n", virtual_address);
+  printf("Virtual address of variable: 0x%lx\n", virtual_address);
 
   uint64_t physical_address = get_physical_address(virtual_address, pid);
   if (physical_address != 0) {
-    printf("Physical address of stats: 0x%lx\n", physical_address);
+    printf("Physical address of variable: 0x%lx\n", physical_address);
   } else {
     printf("The page is not mapped in physical memory.\n");
   }
-  printf("Physical address of stats_state: 0x%lx\n",
-         get_physical_address((uint64_t)&stats_state, pid));
+  printf("Virtual address of stats: 0x%lx\n", (uint64_t)&stats);
+  printf("Physical address of stats: 0x%lx\n",
+         get_physical_address((uint64_t)&stats, pid));
+
+  // printf("variable is 0x%lx\n", variable);
 
   // this is debug to check if memory is really locked
   // unsigned long addr = (unsigned long)p & ~(0x1000 - 1);
