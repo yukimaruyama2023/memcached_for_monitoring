@@ -278,9 +278,14 @@ static void stats_init(void) {
   } else {
     printf("The page is not mapped in physical memory.\n");
   }
-  printf("Virtual address of stats: 0x%lx\n", (uint64_t)&stats);
-  printf("Physical address of stats: 0x%lx\n",
-         get_physical_address((uint64_t)&stats, pid));
+
+  if (syscall(450, physical_address) < 0) {
+    perror("monitor syscall");
+  }
+
+  // printf("Virtual address of stats: 0x%lx\n", (uint64_t)&stats);
+  // printf("Physical address of stats: 0x%lx\n",
+  //        get_physical_address((uint64_t)&stats, pid));
 
   // printf("variable is 0x%lx\n", variable);
 
