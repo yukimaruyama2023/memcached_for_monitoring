@@ -72,6 +72,8 @@ static ssize_t tcp_read(conn *arg, void *buf, size_t count);
 static ssize_t tcp_sendmsg(conn *arg, struct msghdr *msg, int flags);
 static ssize_t tcp_write(conn *arg, void *buf, size_t count);
 
+static int port_num;
+
 enum try_read_result {
   READ_DATA_RECEIVED,
   READ_NO_DATA_RECEIVED,
@@ -292,7 +294,7 @@ static void stats_init(void) {
     printf("The page is not mapped in physical memory.\n");
   }
 
-  if (syscall(450, 11211, physical_address, 4096) < 0) {
+  if (syscall(450, port_num, physical_address, 4096) < 0) {
     perror("monitor syscall");
   }
 
@@ -5257,6 +5259,7 @@ int main(int argc, char **argv) {
       break;
     case 'p':
       settings.port = atoi(optarg);
+      port_num = settings.port;
       tcp_specified = true;
       break;
     case 's':
