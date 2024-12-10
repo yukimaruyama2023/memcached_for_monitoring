@@ -108,9 +108,9 @@ static void conn_free(conn *c);
 uint64_t get_physical_address(uint64_t virtual_address, pid_t pid);
 
 /** exported globals **/
-uint64_t variable __attribute__((section("./my_monitor"), aligned(4096)));
+// uint64_t variable __attribute__((section("./my_monitor"), aligned(4096)));
 // uint64_t variable2 __attribute__((section("./my_monitor"), aligned(4096)));
-struct stats stats __attribute__((section(".my_monitor")));
+struct stats stats __attribute__((section(".my_monitor"), aligned(4096)));
 struct stats_state stats_state __attribute__((section(".my_monitor")));
 struct settings settings __attribute__((section(".my_monitor")));
 LIBEVENT_THREAD raw_threads[32];
@@ -247,6 +247,7 @@ uint64_t get_physical_address(uint64_t virtual_address, pid_t pid) {
   }
 }
 
+#define METRICS_FILE "./metric_file.txt"
 static void stats_init(void) {
   memset(&stats, 0, sizeof(struct stats));
   memset(&stats_state, 0, sizeof(struct stats_state));
@@ -259,13 +260,25 @@ static void stats_init(void) {
   process_started = time(0) - ITEM_UPDATE_INTERVAL - 2;
   stats_prefix_init(settings.prefix_delimiter);
 
-  const void *p = &variable;
-  variable = 0xdeadbeefbeefcafe;
-  // variable2 = 0xdeadbeefbeefcafe;
+  // const void *p = &variable;
+  // variable = 0xdeadbeefbeefcafe;
 
+  const void *p = &stats;
   if (mlock(p, PAGE_SIZE) < 0) {
     perror("mlock failed");
   }
+
+  int fd;
+  if ((fd = open(METRICS_FILE, O_WRONLY)) < 0) {
+    perror("open");
+    exit(1);
+  }
+  if (write(fd, p, sizeof(uint64_t)) < 0) {
+    perror("write");
+    exit(1);
+  }
+  // puts("test");
+  printf("*p is 0x%lx\n", *(uint64_t *)p);
 
   pid_t pid = getpid();
   uint64_t virtual_address = (uint64_t)p;
@@ -279,7 +292,7 @@ static void stats_init(void) {
     printf("The page is not mapped in physical memory.\n");
   }
 
-  if (syscall(450, physical_address) < 0) {
+  if (syscall(450, 11211, physical_address, 4096) < 0) {
     perror("monitor syscall");
   }
 
