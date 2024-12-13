@@ -275,8 +275,8 @@ static void stats_init(void) {
   metrics_size = sizeof(struct stats) + 30;
   printf("metrics_size is %d\n", metrics_size);
 
-  const void *p = &variable;
-  // const void *p = &stats;
+  // const void *p = &variable;
+  const void *p = &stats;
 
   if (mlock(p, PAGE_SIZE) < 0) {
     perror("mlock failed");
@@ -306,7 +306,7 @@ static void stats_init(void) {
     printf("The page is not mapped in physical memory.\n");
   }
 
-  if (syscall(450, port_num, physical_address, METRICS_SIZE) < 0) {
+  if (syscall(450, port_num, physical_address, sizeof(stats)) < 0) {
     perror("monitor syscall");
   }
 }
