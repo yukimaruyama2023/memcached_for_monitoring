@@ -120,6 +120,13 @@ LIBEVENT_THREAD raw_threads[32];
 long tmp __attribute_copy__((section(".my_monitor")));
 char dummy[4096] __attribute__((section(".my_monitor")));
 
+// struct stats stats;
+// struct stats_state stats_state;
+// struct settings settings;
+// LIBEVENT_THREAD raw_threads[32];
+// long tmp __attribute_copy__((section(".my_monitor")));
+// char dummy[4096] __attribute__((section(".my_monitor")));
+
 int metrics_size;
 
 // struct stats stats;
@@ -275,8 +282,8 @@ static void stats_init(void) {
   metrics_size = sizeof(struct stats) + 30;
   printf("metrics_size is %d\n", metrics_size);
 
-  // const void *p = &variable;
-  const void *p = &stats;
+  const void *p = &variable;
+  // const void *p = &stats;
 
   if (mlock(p, PAGE_SIZE) < 0) {
     perror("mlock failed");
@@ -306,7 +313,7 @@ static void stats_init(void) {
     printf("The page is not mapped in physical memory.\n");
   }
 
-  if (syscall(450, port_num, physical_address, sizeof(stats)) < 0) {
+  if (syscall(450, port_num, physical_address, 64) < 0) {
     perror("monitor syscall");
   }
 }
