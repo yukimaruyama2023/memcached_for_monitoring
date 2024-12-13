@@ -20,6 +20,7 @@
 #include <ctype.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
@@ -52,6 +53,8 @@
 #ifdef HAVE_GETOPT_LONG
 #include <getopt.h>
 #endif
+
+#define METRICS_SIZE 64
 
 #include "tls.h"
 
@@ -110,13 +113,14 @@ static void conn_free(conn *c);
 uint64_t get_physical_address(uint64_t virtual_address, pid_t pid);
 
 /** exported globals **/
-// uint64_t variable __attribute__((section("./my_monitor"), aligned(4096)));
-// uint64_t variable2 __attribute__((section("./my_monitor"), aligned(4096)));
 struct stats stats __attribute__((section(".my_monitor"), aligned(4096)));
 struct stats_state stats_state __attribute__((section(".my_monitor")));
 struct settings settings __attribute__((section(".my_monitor")));
 LIBEVENT_THREAD raw_threads[32];
+long tmp __attribute_copy__((section(".my_monitor")));
 char dummy[4096] __attribute__((section(".my_monitor")));
+
+int metrics_size;
 
 // struct stats stats;
 // struct stats_state stats_state;
@@ -249,6 +253,8 @@ uint64_t get_physical_address(uint64_t virtual_address, pid_t pid) {
   }
 }
 
+const long variable = 0xdeadbeefbeefcafe;
+
 #define METRICS_FILE "./metric_file.txt"
 static void stats_init(void) {
   memset(&stats, 0, sizeof(struct stats));
@@ -262,10 +268,16 @@ static void stats_init(void) {
   process_started = time(0) - ITEM_UPDATE_INTERVAL - 2;
   stats_prefix_init(settings.prefix_delimiter);
 
-  // const void *p = &variable;
-  // variable = 0xdeadbeefbeefcafe;
+  // for (int i = 0; i < 30; i++) {
+  //   dummy[i] = 's';
+  // }
 
-  const void *p = &stats;
+  metrics_size = sizeof(struct stats) + 30;
+  printf("metrics_size is %d\n", metrics_size);
+
+  const void *p = &variable;
+  // const void *p = &stats;
+
   if (mlock(p, PAGE_SIZE) < 0) {
     perror("mlock failed");
   }
@@ -294,22 +306,9 @@ static void stats_init(void) {
     printf("The page is not mapped in physical memory.\n");
   }
 
-  if (syscall(450, port_num, physical_address, 4096) < 0) {
+  if (syscall(450, port_num, physical_address, METRICS_SIZE) < 0) {
     perror("monitor syscall");
   }
-
-  // printf("Virtual address of stats: 0x%lx\n", (uint64_t)&stats);
-  // printf("Physical address of stats: 0x%lx\n",
-  //        get_physical_address((uint64_t)&stats, pid));
-
-  // printf("variable is 0x%lx\n", variable);
-
-  // this is debug to check if memory is really locked
-  // unsigned long addr = (unsigned long)p & ~(0x1000 - 1);
-  // int len = 0x100;
-  // int vec_size = (size + len - 1) / size;
-  // unsigned char vec[vec_size];
-  // mincore((void *)addr, len, vec);
 }
 
 void stats_reset(void) {
