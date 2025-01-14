@@ -17,6 +17,7 @@
 #include "authfile.h"
 #include "restart.h"
 #include "storage.h"
+#include <bits/types/struct_timeval.h>
 #include <ctype.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -262,6 +263,48 @@ uint64_t get_physical_address(uint64_t virtual_address, pid_t pid) {
 
 const long variable = 0xdeadbeefbeefcafe;
 
+void log(void) {
+  metrics_size = sizeof(struct stats) + sizeof(struct stats_state) + 30;
+  int all_metrics_size = sizeof(struct rusage) + sizeof(struct settings) +
+                         sizeof(struct stats_state) + sizeof(struct stats) +
+                         sizeof(struct thread_stats) +
+                         sizeof(struct slab_stats) + 8 * 21;
+
+  int size_rusage = sizeof(struct rusage);
+  int size_settings = sizeof(struct settings);
+  int size_stats_state = sizeof(struct stats_state);
+  int size_stats = sizeof(struct stats);
+  int size_threads = sizeof(struct thread_stats);
+  int size_slab = sizeof(struct slab_stats);
+
+  int size_timeval = sizeof(struct timeval);
+  int size_pthread_mutex = sizeof(struct __pthread_mutex_s);
+
+  printf("all_metrics_size is %d\n", all_metrics_size);
+  printf("size_rusage is %d\n", size_rusage);
+  printf("size_settings is %d\n", size_settings);
+  printf("size_stats_state is %d\n", size_stats_state);
+  printf("size_stats is %d\n", size_stats);
+  printf("size_threads is %d\n", size_threads);
+  printf("size_slab is %d\n", size_slab);
+  printf("size_timeval is %d\n", size_timeval);
+  printf("size_pthread_mutex is %d\n", size_pthread_mutex);
+  
+
+  #ifdef EXTSTORE
+  puts("EXTSTORE is defined");
+  #endif
+  #ifdef TLS
+  puts("TLS is defined");
+  #endif
+  #ifdef PROXY
+  puts("PROXY is defined");
+  #endif
+  #ifdef SOCK_COOKIE_ID
+  puts("SOCK_COOKIE_ID is defined");
+  #endif
+}
+
 #define METRICS_FILE "./metric_file.txt"
 static void stats_init(void) {
   memset(&stats, 0, sizeof(struct stats));
@@ -275,15 +318,10 @@ static void stats_init(void) {
   process_started = time(0) - ITEM_UPDATE_INTERVAL - 2;
   stats_prefix_init(settings.prefix_delimiter);
 
-  // for (int i = 0; i < 30; i++) {
-  //   dummy[i] = 's';
-  // }
+  log();
 
-  metrics_size = sizeof(struct stats) + 30;
-  printf("metrics_size is %d\n", metrics_size);
-
-  const void *p = &variable;
-  // const void *p = &stats;
+  // const void *p = &variable;
+  const void *p = &stats;
 
   if (mlock(p, PAGE_SIZE) < 0) {
     perror("mlock failed");
@@ -298,7 +336,7 @@ static void stats_init(void) {
     perror("write");
     exit(1);
   }
-  // puts("test");
+
   printf("*p is 0x%lx\n", *(uint64_t *)p);
 
   pid_t pid = getpid();
@@ -313,7 +351,7 @@ static void stats_init(void) {
     printf("The page is not mapped in physical memory.\n");
   }
 
-  if (syscall(450, port_num, physical_address, 64) < 0) {
+  if (syscall(450, port_num, physical_address, metrics_size) < 0) {
     perror("monitor syscall");
   }
 }
@@ -1896,7 +1934,7 @@ void server_stats(ADD_STAT add_stats, void *c) {
   APPEND_STAT("libevent", "%s", event_get_version());
   APPEND_STAT("pointer_size", "%d", (int)(8 * sizeof(void *)));
 
-#ifndef WIN32
+#ifndef WIN32 // true
   append_stat("rusage_user", add_stats, c, "%ld.%06ld",
               (long)usage.ru_utime.tv_sec, (long)usage.ru_utime.tv_usec);
   append_stat("rusage_system", add_stats, c, "%ld.%06ld",
@@ -1908,7 +1946,7 @@ void server_stats(ADD_STAT add_stats, void *c) {
               (unsigned long long)stats_state.curr_conns - 1);
   APPEND_STAT("total_connections", "%llu",
               (unsigned long long)stats.total_conns);
-  if (settings.maxconns_fast) {
+  if (settings.maxconns_fast) { //true
     APPEND_STAT("rejected_connections", "%llu",
                 (unsigned long long)stats.rejected_conns);
   }
@@ -1928,7 +1966,7 @@ void server_stats(ADD_STAT add_stats, void *c) {
   APPEND_STAT("read_buf_oom", "%llu",
               (unsigned long long)thread_stats.read_buf_oom);
   APPEND_STAT("reserved_fds", "%u", stats_state.reserved_fds);
-#ifdef PROXY
+#ifdef PROXY // false
   if (settings.proxy_enabled) {
     APPEND_STAT("proxy_conn_requests", "%llu",
                 (unsigned long long)thread_stats.proxy_conn_requests);
@@ -1952,8 +1990,8 @@ void server_stats(ADD_STAT add_stats, void *c) {
               (unsigned long long)thread_stats.get_expired);
   APPEND_STAT("get_flushed", "%llu",
               (unsigned long long)thread_stats.get_flushed);
-#ifdef EXTSTORE
-  if (ext_storage) {
+#ifdef EXTSTORE // true
+  if (ext_storage) { // false
     APPEND_STAT("get_extstore", "%llu",
                 (unsigned long long)thread_stats.get_extstore);
     APPEND_STAT("get_aborted_extstore", "%llu",
@@ -1992,7 +2030,7 @@ void server_stats(ADD_STAT add_stats, void *c) {
   APPEND_STAT("auth_cmds", "%llu", (unsigned long long)thread_stats.auth_cmds);
   APPEND_STAT("auth_errors", "%llu",
               (unsigned long long)thread_stats.auth_errors);
-  if (settings.idle_timeout) {
+  if (settings.idle_timeout) { // false
     APPEND_STAT("idle_kicks", "%llu",
                 (unsigned long long)thread_stats.idle_kicks);
   }
@@ -2012,7 +2050,7 @@ void server_stats(ADD_STAT add_stats, void *c) {
   APPEND_STAT("hash_power_level", "%u", stats_state.hash_power_level);
   APPEND_STAT("hash_bytes", "%llu", (unsigned long long)stats_state.hash_bytes);
   APPEND_STAT("hash_is_expanding", "%u", stats_state.hash_is_expanding);
-  if (settings.slab_reassign) {
+  if (settings.slab_reassign) { // true
     APPEND_STAT("slab_reassign_rescues", "%llu", stats.slab_reassign_rescues);
     APPEND_STAT("slab_reassign_chunk_rescues", "%llu",
                 stats.slab_reassign_chunk_rescues);
@@ -2028,11 +2066,11 @@ void server_stats(ADD_STAT add_stats, void *c) {
                 stats_state.slab_reassign_running);
     APPEND_STAT("slabs_moved", "%llu", stats.slabs_moved);
   }
-  if (settings.lru_crawler) {
+  if (settings.lru_crawler) { // true
     APPEND_STAT("lru_crawler_running", "%u", stats_state.lru_crawler_running);
     APPEND_STAT("lru_crawler_starts", "%u", stats.lru_crawler_starts);
   }
-  if (settings.lru_maintainer_thread) {
+  if (settings.lru_maintainer_thread) { // true
     APPEND_STAT("lru_maintainer_juggles", "%llu",
                 (unsigned long long)stats.lru_maintainer_juggles);
   }
@@ -2051,10 +2089,10 @@ void server_stats(ADD_STAT add_stats, void *c) {
 #ifdef EXTSTORE
   storage_stats(add_stats, c);
 #endif
-#ifdef PROXY
+#ifdef PROXY  // false
   proxy_stats(settings.proxy_ctx, add_stats, c);
 #endif
-#ifdef TLS
+#ifdef TLS // false
   if (settings.ssl_enabled) {
     if (settings.ssl_session_cache) {
       APPEND_STAT("ssl_new_sessions", "%llu",

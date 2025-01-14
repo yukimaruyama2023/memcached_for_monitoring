@@ -51,6 +51,7 @@ typedef struct {
     uint64_t mem_requested;
     rel_time_t evicted_time;
 } itemstats_t;
+extern itemstats_t;
 
 static item *heads[LARGEST_ID];
 static item *tails[LARGEST_ID];
@@ -757,7 +758,7 @@ void item_stats_totals(ADD_STAT add_stats, void *c) {
                 (unsigned long long)totals.expired_unfetched);
     APPEND_STAT("evicted_unfetched", "%llu",
                 (unsigned long long)totals.evicted_unfetched);
-    if (settings.lru_maintainer_thread) {
+    if (settings.lru_maintainer_thread) {             // true
         APPEND_STAT("evicted_active", "%llu",
                     (unsigned long long)totals.evicted_active);
     }
@@ -771,7 +772,7 @@ void item_stats_totals(ADD_STAT add_stats, void *c) {
                 (unsigned long long)totals.crawler_items_checked);
     APPEND_STAT("lrutail_reflocked", "%llu",
                 (unsigned long long)totals.lrutail_reflocked);
-    if (settings.lru_maintainer_thread) {
+    if (settings.lru_maintainer_thread) {                // true
         APPEND_STAT("moves_to_cold", "%llu",
                     (unsigned long long)totals.moves_to_cold);
         APPEND_STAT("moves_to_warm", "%llu",
