@@ -114,14 +114,13 @@ static void conn_free(conn *c);
 
 uint64_t get_physical_address(uint64_t virtual_address, pid_t pid);
 
-/** exported globals **/
 struct stats stats __attribute__((section(".my_monitor"), aligned(4096)));
 struct stats_state stats_state __attribute__((section(".my_monitor")));
 struct settings settings __attribute__((section(".my_monitor")));
 struct rusage rusage __attribute__((section(".my_monitor")));
 struct thread_stats thread_stats __attribute__((section(".my_monitor")));
 struct slab_stats slab_stats __attribute__((section(".my_monitor")));
-// itemstats_t itemstats_t __attribute__((section(".my_monitor")));
+itemstats_t totals __attribute__((section(".my_monitor")));
 
 // struct stats stats;
 // struct stats_state stats_state;

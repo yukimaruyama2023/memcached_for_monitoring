@@ -27,31 +27,6 @@ static void item_unlink_q(item *it);
 
 static unsigned int lru_type_map[4] = {HOT_LRU, WARM_LRU, COLD_LRU, TEMP_LRU};
 
-#define LARGEST_ID POWER_LARGEST
-typedef struct {
-  uint64_t evicted;
-  uint64_t evicted_nonzero;
-  uint64_t reclaimed;
-  uint64_t outofmemory;
-  uint64_t tailrepairs;
-  uint64_t expired_unfetched; /* items reclaimed but never touched */
-  uint64_t evicted_unfetched; /* items evicted but never touched */
-  uint64_t evicted_active;    /* items evicted that should have been shuffled */
-  uint64_t crawler_reclaimed;
-  uint64_t crawler_items_checked;
-  uint64_t lrutail_reflocked;
-  uint64_t moves_to_cold;
-  uint64_t moves_to_warm;
-  uint64_t moves_within_lru;
-  uint64_t direct_reclaims;
-  uint64_t hits_to_hot;
-  uint64_t hits_to_warm;
-  uint64_t hits_to_cold;
-  uint64_t hits_to_temp;
-  uint64_t mem_requested;
-  rel_time_t evicted_time;
-} itemstats_t;
-extern itemstats_t;
 
 static item *heads[LARGEST_ID];
 static item *tails[LARGEST_ID];
@@ -740,8 +715,9 @@ void fill_item_stats_automove(item_stats_automove *am) {
   }
 }
 
+// itemstats_t totals;
 void item_stats_totals(ADD_STAT add_stats, void *c) {
-  itemstats_t totals;
+  // itemstats_t totals;
   memset(&totals, 0, sizeof(itemstats_t));
   int n;
   for (n = 0; n < MAX_NUMBER_OF_SLAB_CLASSES; n++) {

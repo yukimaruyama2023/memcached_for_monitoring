@@ -232,6 +232,32 @@ enum bin_substates {
     bin_reading_touch_key,
 };
 
+#define LARGEST_ID POWER_LARGEST
+typedef struct {
+  uint64_t evicted;
+  uint64_t evicted_nonzero;
+  uint64_t reclaimed;
+  uint64_t outofmemory;
+  uint64_t tailrepairs;
+  uint64_t expired_unfetched; /* items reclaimed but never touched */
+  uint64_t evicted_unfetched; /* items evicted but never touched */
+  uint64_t evicted_active;    /* items evicted that should have been shuffled */
+  uint64_t crawler_reclaimed;
+  uint64_t crawler_items_checked;
+  uint64_t lrutail_reflocked;
+  uint64_t moves_to_cold;
+  uint64_t moves_to_warm;
+  uint64_t moves_within_lru;
+  uint64_t direct_reclaims;
+  uint64_t hits_to_hot;
+  uint64_t hits_to_warm;
+  uint64_t hits_to_cold;
+  uint64_t hits_to_temp;
+  uint64_t mem_requested;
+  rel_time_t evicted_time;
+} itemstats_t;
+extern itemstats_t totals;
+
 enum protocol {
     ascii_prot = 3, /* arbitrary value. */
     binary_prot,
