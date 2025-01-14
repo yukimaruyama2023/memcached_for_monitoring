@@ -15,6 +15,7 @@
  */
 #include "memcached.h"
 #include "authfile.h"
+// #include "items.c"
 #include "restart.h"
 #include "storage.h"
 #include <bits/types/struct_timeval.h>
@@ -117,9 +118,10 @@ uint64_t get_physical_address(uint64_t virtual_address, pid_t pid);
 struct stats stats __attribute__((section(".my_monitor"), aligned(4096)));
 struct stats_state stats_state __attribute__((section(".my_monitor")));
 struct settings settings __attribute__((section(".my_monitor")));
-LIBEVENT_THREAD raw_threads[32];
-long tmp __attribute_copy__((section(".my_monitor")));
-char dummy[4096] __attribute__((section(".my_monitor")));
+struct rusage rusage __attribute__((section(".my_monitor")));
+struct thread_stats thread_stats __attribute__((section(".my_monitor")));
+struct slab_stats slab_stats __attribute__((section(".my_monitor")));
+// itemstats_t itemstats_t __attribute__((section(".my_monitor")));
 
 // struct stats stats;
 // struct stats_state stats_state;
@@ -289,20 +291,19 @@ void log(void) {
   printf("size_slab is %d\n", size_slab);
   printf("size_timeval is %d\n", size_timeval);
   printf("size_pthread_mutex is %d\n", size_pthread_mutex);
-  
 
-  #ifdef EXTSTORE
+#ifdef EXTSTORE
   puts("EXTSTORE is defined");
-  #endif
-  #ifdef TLS
+#endif
+#ifdef TLS
   puts("TLS is defined");
-  #endif
-  #ifdef PROXY
+#endif
+#ifdef PROXY
   puts("PROXY is defined");
-  #endif
-  #ifdef SOCK_COOKIE_ID
+#endif
+#ifdef SOCK_COOKIE_ID
   puts("SOCK_COOKIE_ID is defined");
-  #endif
+#endif
 }
 
 #define METRICS_FILE "./metric_file.txt"
@@ -1946,7 +1947,7 @@ void server_stats(ADD_STAT add_stats, void *c) {
               (unsigned long long)stats_state.curr_conns - 1);
   APPEND_STAT("total_connections", "%llu",
               (unsigned long long)stats.total_conns);
-  if (settings.maxconns_fast) { //true
+  if (settings.maxconns_fast) { // true
     APPEND_STAT("rejected_connections", "%llu",
                 (unsigned long long)stats.rejected_conns);
   }
@@ -1990,7 +1991,7 @@ void server_stats(ADD_STAT add_stats, void *c) {
               (unsigned long long)thread_stats.get_expired);
   APPEND_STAT("get_flushed", "%llu",
               (unsigned long long)thread_stats.get_flushed);
-#ifdef EXTSTORE // true
+#ifdef EXTSTORE      // true
   if (ext_storage) { // false
     APPEND_STAT("get_extstore", "%llu",
                 (unsigned long long)thread_stats.get_extstore);
@@ -2089,7 +2090,7 @@ void server_stats(ADD_STAT add_stats, void *c) {
 #ifdef EXTSTORE
   storage_stats(add_stats, c);
 #endif
-#ifdef PROXY  // false
+#ifdef PROXY // false
   proxy_stats(settings.proxy_ctx, add_stats, c);
 #endif
 #ifdef TLS // false
