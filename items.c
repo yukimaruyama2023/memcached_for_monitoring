@@ -27,7 +27,6 @@ static void item_unlink_q(item *it);
 
 static unsigned int lru_type_map[4] = {HOT_LRU, WARM_LRU, COLD_LRU, TEMP_LRU};
 
-
 static item *heads[LARGEST_ID];
 static item *tails[LARGEST_ID];
 static itemstats_t itemstats[LARGEST_ID];
@@ -718,6 +717,7 @@ void fill_item_stats_automove(item_stats_automove *am) {
 // itemstats_t totals;
 void item_stats_totals(ADD_STAT add_stats, void *c) {
   // itemstats_t totals;
+  // modified
   memset(&totals, 0, sizeof(itemstats_t));
   int n;
   for (n = 0; n < MAX_NUMBER_OF_SLAB_CLASSES; n++) {

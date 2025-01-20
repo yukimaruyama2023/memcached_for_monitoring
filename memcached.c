@@ -264,12 +264,13 @@ uint64_t get_physical_address(uint64_t virtual_address, pid_t pid) {
 
 const long variable = 0xdeadbeefbeefcafe;
 
-void log(void) {
+void metrics_log(void) {
+  pid_t pid = getpid();
   metrics_size = sizeof(struct stats) + sizeof(struct stats_state) + 30;
   int all_metrics_size = sizeof(struct rusage) + sizeof(struct settings) +
                          sizeof(struct stats_state) + sizeof(struct stats) +
                          sizeof(struct thread_stats) +
-                         sizeof(struct slab_stats) + 8 * 21;
+                         sizeof(struct slab_stats) + sizeof(totals);
 
   int size_rusage = sizeof(struct rusage);
   int size_settings = sizeof(struct settings);
@@ -290,6 +291,33 @@ void log(void) {
   printf("size_slab is %d\n", size_slab);
   printf("size_timeval is %d\n", size_timeval);
   printf("size_pthread_mutex is %d\n", size_pthread_mutex);
+  puts("");
+  // printf("virtual_addr of stats is 0x%lx\n", (uint64_t)&stats);
+  printf("physical_addr of stats is 0x%lx\n",
+         (uint64_t)get_physical_address((uint64_t)&stats, pid));
+  // printf("virtual_addr of stats_state is 0x%lx\n", (uint64_t)&stats_state);
+  printf("physical_addr of stats_state is 0x%lx\n",
+         (uint64_t)get_physical_address((uint64_t)&stats_state, pid));
+  // printf("virtual_addr of settings is 0x%lx\n", (uint64_t)&settings);
+  printf("physical_addr of settings is 0x%lx\n",
+         (uint64_t)get_physical_address((uint64_t)&settings, pid));
+  // printf("virtual_addr of rusage is 0x%lx\n", (uint64_t)&rusage);
+  printf("physical_addr of rusage is 0x%lx\n",
+         (uint64_t)get_physical_address((uint64_t)&rusage, pid));
+  // printf("virtual_addr of thread_stats is 0x%lx\n", (uint64_t)&thread_stats);
+  printf("physical_addr of thread_stats is 0x%lx\n",
+         (uint64_t)get_physical_address((uint64_t)&thread_stats, pid));
+  // printf("virtual_addr of slab_stats is 0x%lx\n", (uint64_t)&slab_stats);
+  printf("physical_addr of slab_stats is 0x%lx\n",
+         (uint64_t)get_physical_address((uint64_t)&slab_stats, pid));
+  // printf("virtual_addr of totals is 0x%lx\n", (uint64_t)&totals);
+  printf("physical_addr of totals is 0x%lx\n",
+         (uint64_t)get_physical_address((uint64_t)&totals, pid));
+  puts("");
+  printf("physical_addr of thread_stats.read_buf_bytes_free is 0x%lx\n",
+         (uint64_t)get_physical_address(
+             (uint64_t)&thread_stats.read_buf_bytes_free, pid));
+  puts("");
 
 #ifdef EXTSTORE
   puts("EXTSTORE is defined");
@@ -305,6 +333,16 @@ void log(void) {
 #endif
 }
 
+enum {
+  STATS,
+  STATS_STATE,
+  SETTINGS,
+  RUSAGE,
+  THREAD_STATS,
+  SLAB_STATS,
+  TOTALS,
+};
+
 #define METRICS_FILE "./metric_file.txt"
 static void stats_init(void) {
   memset(&stats, 0, sizeof(struct stats));
@@ -318,12 +356,15 @@ static void stats_init(void) {
   process_started = time(0) - ITEM_UPDATE_INTERVAL - 2;
   stats_prefix_init(settings.prefix_delimiter);
 
-  log();
+  metrics_log();
 
   // const void *p = &variable;
   const void *p = &stats;
 
   if (mlock(p, PAGE_SIZE) < 0) {
+    perror("mlock failed");
+  }
+  if (mlock((void *)((uint64_t)p + PAGE_SIZE), PAGE_SIZE) < 0) {
     perror("mlock failed");
   }
 
@@ -344,16 +385,61 @@ static void stats_init(void) {
 
   printf("Virtual address of variable: 0x%lx\n", virtual_address);
 
-  uint64_t physical_address = get_physical_address(virtual_address, pid);
-  if (physical_address != 0) {
-    printf("Physical address of variable: 0x%lx\n", physical_address);
-  } else {
-    printf("The page is not mapped in physical memory.\n");
+  uint64_t phys_addr_stats = get_physical_address((uint64_t)&stats, pid);
+  uint64_t phys_addr_stats_state =
+      get_physical_address((uint64_t)&stats_state, pid);
+  uint64_t phys_addr_settings = get_physical_address((uint64_t)&settings, pid);
+  uint64_t phys_addr_rusage = get_physical_address((uint64_t)&rusage, pid);
+  uint64_t phys_addr_thread_stats =
+      get_physical_address((uint64_t)&thread_stats, pid);
+  uint64_t phys_addr_slab_stats =
+      get_physical_address((uint64_t)&slab_stats, pid);
+  uint64_t phys_addr_totals = get_physical_address((uint64_t)&totals, pid);
+
+  // if (physical_address != 0) {
+  //   printf("Physical address of variable: 0x%lx\n", physical_address);
+  // } else {
+  //   printf("The page is not mapped in physical memory.\n");
+  // }
+
+  if (syscall(450, port_num, STATS, sizeof(stats), phys_addr_stats) < 0) {
+    perror("monitor syscall: while registering stats");
+  }
+  if (syscall(450, port_num, STATS_STATE, sizeof(stats_state),
+              phys_addr_stats_state) < 0) {
+    perror("monitor syscall: while registering stats_state");
+  }
+  if (syscall(450, port_num, SETTINGS, sizeof(settings), phys_addr_settings) <
+      0) {
+    perror("monitor syscall: while registering settings");
+  }
+  if (syscall(450, port_num, RUSAGE, sizeof(rusage), phys_addr_rusage) < 0) {
+    perror("monitor syscall: while registering rusage");
+  }
+  if (syscall(450, port_num, THREAD_STATS, sizeof(thread_stats),
+              phys_addr_thread_stats) < 0) {
+    perror("monitor syscall: while registering thread_stats");
+  }
+  if (syscall(450, port_num, SLAB_STATS, sizeof(slab_stats),
+              phys_addr_slab_stats) < 0) {
+    perror("monitor syscall: while registering slab_stats");
+  }
+  if (syscall(450, port_num, TOTALS, sizeof(totals), phys_addr_totals) < 0) {
+    perror("monitor syscall: while registering totals");
   }
 
-  if (syscall(450, port_num, physical_address, metrics_size) < 0) {
-    perror("monitor syscall");
-  }
+  stats.total_items = 0xdeadbeef;
+  stats_state.curr_items = 0xcafecafe;
+  settings.maxbytes = 0xbeef;
+  thread_stats.get_cmds = 0xbeefcafe;
+  slab_stats.set_cmds = 0xdeadcafe;
+  totals.evicted = 0xfefecafe;
+  // totals.reclaimed = 0xfefe;
+  // totals.expired_unfetched = 0xfefe;
+  // totals.evicted_unfetched = 0xfefe;
+  // totals.evicted_active = 0xfefe;
+  uint64_t phys_addr_tmp = get_physical_address((uint64_t)&totals.evicted, pid);
+  printf("phys_addr of totals.evicted is 0x%lx\n", phys_addr_tmp);
 }
 
 void stats_reset(void) {
