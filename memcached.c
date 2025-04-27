@@ -402,29 +402,29 @@ static void stats_init(void) {
   //   printf("The page is not mapped in physical memory.\n");
   // }
 
-  if (syscall(450, port_num, STATS, sizeof(stats), phys_addr_stats) < 0) {
+  if (syscall(463, port_num, STATS, sizeof(stats), phys_addr_stats) < 0) {
     perror("monitor syscall: while registering stats");
   }
-  if (syscall(450, port_num, STATS_STATE, sizeof(stats_state),
+  if (syscall(463, port_num, STATS_STATE, sizeof(stats_state),
               phys_addr_stats_state) < 0) {
     perror("monitor syscall: while registering stats_state");
   }
-  if (syscall(450, port_num, SETTINGS, sizeof(settings), phys_addr_settings) <
+  if (syscall(463, port_num, SETTINGS, sizeof(settings), phys_addr_settings) <
       0) {
     perror("monitor syscall: while registering settings");
   }
-  if (syscall(450, port_num, RUSAGE, sizeof(rusage), phys_addr_rusage) < 0) {
+  if (syscall(463, port_num, RUSAGE, sizeof(rusage), phys_addr_rusage) < 0) {
     perror("monitor syscall: while registering rusage");
   }
-  if (syscall(450, port_num, THREAD_STATS, sizeof(thread_stats),
+  if (syscall(463, port_num, THREAD_STATS, sizeof(thread_stats),
               phys_addr_thread_stats) < 0) {
     perror("monitor syscall: while registering thread_stats");
   }
-  if (syscall(450, port_num, SLAB_STATS, sizeof(slab_stats),
+  if (syscall(463, port_num, SLAB_STATS, sizeof(slab_stats),
               phys_addr_slab_stats) < 0) {
     perror("monitor syscall: while registering slab_stats");
   }
-  if (syscall(450, port_num, TOTALS, sizeof(totals), phys_addr_totals) < 0) {
+  if (syscall(463, port_num, TOTALS, sizeof(totals), phys_addr_totals) < 0) {
     perror("monitor syscall: while registering totals");
   }
 
