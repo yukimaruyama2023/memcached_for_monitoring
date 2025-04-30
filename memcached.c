@@ -114,14 +114,21 @@ static void conn_free(conn *c);
 
 uint64_t get_physical_address(uint64_t virtual_address, pid_t pid);
 
-struct stats stats __attribute__((section(".my_monitor")));
-// struct stats stats __attribute__((section(".my_monitor"), aligned(4096)));
-struct stats_state stats_state __attribute__((section(".my_monitor")));
-struct settings settings __attribute__((section(".my_monitor")));
-struct rusage rusage __attribute__((section(".my_monitor")));
-struct thread_stats thread_stats __attribute__((section(".my_monitor")));
-struct slab_stats slab_stats __attribute__((section(".my_monitor")));
-itemstats_t totals __attribute__((section(".my_monitor")));
+// struct stats stats __attribute__((section(".my_monitor")));
+// struct stats_state stats_state __attribute__((section(".my_monitor")));
+// struct settings settings __attribute__((section(".my_monitor")));
+// struct rusage rusage __attribute__((section(".my_monitor")));
+// struct thread_stats thread_stats __attribute__((section(".my_monitor")));
+// struct slab_stats slab_stats __attribute__((section(".my_monitor")));
+// itemstats_t totals __attribute__((section(".my_monitor")));
+
+struct stats stats;
+struct stats_state stats_state;
+struct settings settings;
+struct rusage rusage;
+struct thread_stats thread_stats;
+struct slab_stats slab_stats;
+itemstats_t totals;
 
 // struct stats stats;
 // struct stats_state stats_state;
@@ -432,17 +439,25 @@ static void stats_init(void) {
     perror("monitor syscall: while registering totals");
   }
 
-  stats.total_items = 0xdeadbeef;
-  stats_state.curr_items = 0xcafecafe;
-  settings.maxbytes = 0xbeef;
-  thread_stats.get_cmds = 0xbeefcafe;
-  slab_stats.set_cmds = 0xdeadcafe;
-  totals.evicted = 0xfefecafe;
-
-  // totals.reclaimed = 0xfefe;
+  // stats.total_items = 0xdeadbeef;
+  // stats_state.curr_items = 0xcafecafe;
+  // settings.maxbytes = 0xbeef;
+  // thread_stats.get_cmds = 0xbeefcafe;
+  // slab_stats.set_cmds = 0xdeadcafe;
+  // totals.evicted = 0xfefecafe;
+  // totals.reclaimed = 0xaaaabbbb;
   // totals.expired_unfetched = 0xfefe;
   // totals.evicted_unfetched = 0xfefe;
   // totals.evicted_active = 0xfefe;
+
+  memset(&stats, 'a', sizeof(stats));
+  memset(&stats_state, 'b', sizeof(stats_state));
+  memset(&settings, 'c', sizeof(settings));
+  memset(&rusage, 'd', sizeof(rusage));
+  memset(&thread_stats, 'e', sizeof(thread_stats));
+  memset(&slab_stats, 'f', sizeof(slab_stats));
+  memset(&totals, 'g', sizeof(totals));
+
   uint64_t phys_addr_tmp =
       get_physical_address((uint64_t)&stats.total_items, pid);
   printf("phys_addr of stats.total_items is 0x%lx\n", phys_addr_tmp);
@@ -6373,6 +6388,10 @@ int main(int argc, char **argv) {
   logger_init();
   logger_create(); // main process logger
   conn_init();
+
+  while (1)
+    ;
+
   printf("totals.evicted is 0x%lx\n", totals.evicted);
   bool reuse_mem = false;
   void *mem_base = NULL;
