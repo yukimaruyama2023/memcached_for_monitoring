@@ -114,7 +114,8 @@ static void conn_free(conn *c);
 
 uint64_t get_physical_address(uint64_t virtual_address, pid_t pid);
 
-struct stats stats __attribute__((section(".my_monitor"), aligned(4096)));
+struct stats stats __attribute__((section(".my_monitor")));
+// struct stats stats __attribute__((section(".my_monitor"), aligned(4096)));
 struct stats_state stats_state __attribute__((section(".my_monitor")));
 struct settings settings __attribute__((section(".my_monitor")));
 struct rusage rusage __attribute__((section(".my_monitor")));
@@ -392,6 +393,9 @@ static void stats_init(void) {
   uint64_t phys_addr_rusage = get_physical_address((uint64_t)&rusage, pid);
   uint64_t phys_addr_thread_stats =
       get_physical_address((uint64_t)&thread_stats, pid);
+  // uint64_t phys_addr_slab_stats =
+  //     get_physical_address((uint64_t)&slab_stats, pid);
+  // uint64_t phys_addr_totals = get_physical_address((uint64_t)&totals, pid);
   uint64_t phys_addr_slab_stats =
       get_physical_address((uint64_t)&slab_stats, pid);
   uint64_t phys_addr_totals = get_physical_address((uint64_t)&totals, pid);
@@ -434,12 +438,22 @@ static void stats_init(void) {
   thread_stats.get_cmds = 0xbeefcafe;
   slab_stats.set_cmds = 0xdeadcafe;
   totals.evicted = 0xfefecafe;
+
   // totals.reclaimed = 0xfefe;
   // totals.expired_unfetched = 0xfefe;
   // totals.evicted_unfetched = 0xfefe;
   // totals.evicted_active = 0xfefe;
-  uint64_t phys_addr_tmp = get_physical_address((uint64_t)&totals.evicted, pid);
+  uint64_t phys_addr_tmp =
+      get_physical_address((uint64_t)&stats.total_items, pid);
+  printf("phys_addr of stats.total_items is 0x%lx\n", phys_addr_tmp);
+  phys_addr_tmp = get_physical_address((uint64_t)&stats_state.curr_items, pid);
+  printf("phys_addr of stats_state.curr_items is 0x%lx\n", phys_addr_tmp);
+  phys_addr_tmp = get_physical_address((uint64_t)&slab_stats.set_cmds, pid);
+  printf("phys_addr of slab_stats.set_cmds is 0x%lx\n", phys_addr_tmp);
+  phys_addr_tmp = get_physical_address((uint64_t)&totals.evicted, pid);
   printf("phys_addr of totals.evicted is 0x%lx\n", phys_addr_tmp);
+  printf("virt_add of totals is 0x%lx\n", (uint64_t)&totals);
+  printf("virt_add of totals.state is 0x%lx\n", (uint64_t)&totals.evicted);
 }
 
 void stats_reset(void) {
@@ -6359,6 +6373,7 @@ int main(int argc, char **argv) {
   logger_init();
   logger_create(); // main process logger
   conn_init();
+  printf("totals.evicted is 0x%lx\n", totals.evicted);
   bool reuse_mem = false;
   void *mem_base = NULL;
   bool prefill = false;
