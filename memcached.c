@@ -451,10 +451,10 @@ static void stats_init(void) {
   // totals.evicted_active = 0xfefe;
 
   memset(&stats, 'a', sizeof(stats));
-  memset(&stats_state, 'b', sizeof(stats_state));
-  memset(&settings, 'c', sizeof(settings));
-  memset(&rusage, 'd', sizeof(rusage));
-  memset(&thread_stats, 'e', sizeof(thread_stats));
+  // memset(&stats_state, 'b', sizeof(stats_state));
+  // memset(&settings, 'c', sizeof(settings));
+  // memset(&rusage, 'd', sizeof(rusage));
+  // memset(&thread_stats, 'e', sizeof(thread_stats));
   memset(&slab_stats, 'f', sizeof(slab_stats));
   memset(&totals, 'g', sizeof(totals));
 
@@ -6389,8 +6389,8 @@ int main(int argc, char **argv) {
   logger_create(); // main process logger
   conn_init();
 
-  while (1)
-    ;
+  //while (1)
+  //  ;
 
   printf("totals.evicted is 0x%lx\n", totals.evicted);
   bool reuse_mem = false;
