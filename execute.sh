@@ -9,7 +9,8 @@ MAX_BYTES=524288
 
 for i in $(seq 0 $((NUM_INSTANCES - 1))); do
   PORT=$((BASE_PORT + i))
-  sudo ./memcached -m $MAX_BYTES -p $PORT -u root &
+  # 4 or 5 は，47 thread / 10 instance
+  sudo ./memcached -m $MAX_BYTES -t $(nproc) -p $PORT -u root &
   echo "Started memcached on port $PORT"
 done
 
